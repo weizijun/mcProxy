@@ -24,7 +24,7 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	private SocketAddress addr = null;
 	private ChannelFuture connectFuture; 
 	private FailCounter failCounter = null;
-	private int waitCount = 0; //�ȴ����
+	private int waitCount = 0;
 	
 	NkvFutureListener listener = null;
 	

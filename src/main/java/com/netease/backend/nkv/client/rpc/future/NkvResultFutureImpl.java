@@ -15,13 +15,12 @@ import com.netease.backend.nkv.client.rpc.net.NkvFuture;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture.NkvFutureListener;
 
-//S为response packet，T为解包后的结果。所以NkvResultCast需要做的是将response packet解包后赋值给Result<T>
 public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends NkvResultFuture<T> {
 
-	NkvFuture impl;//为NkvFuture
-	NkvResultCast<S, T> cast;//用于将response packet转化为Result<T>
+	NkvFuture impl;
+	NkvResultCast<S, T> cast;
 	
-	Class<S> retClst;//用于强制类型转化，将packet的body强制转化为S(AbstractResponsePacket)的派生类，其实packet的body就是retClst类型的
+	Class<S> retClst;
 	private Object context = null;
 	
 	public NkvResultFutureImpl(NkvFuture impl, Class<S> retCls, 

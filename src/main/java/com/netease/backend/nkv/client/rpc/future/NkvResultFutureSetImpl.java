@@ -18,7 +18,7 @@ import com.netease.backend.nkv.client.rpc.net.NkvFuture.NkvFutureListener;
 
 public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T extends ResultMap<byte[], Result<E>>> extends NkvResultFuture<ResultMap<byte[], Result<E>>>
 { 
-	private Set<NkvResultFutureImpl<S, Result<T>>> futures;//T是一个ResultMap，byte[]为操作数据的key，Result<E>为value
+	private Set<NkvResultFutureImpl<S, Result<T>>> futures;
 	public NkvResultFutureSetImpl(Set<NkvResultFutureImpl<S, Result<T>>> futures) {
 		this.futures = futures;
 	}
