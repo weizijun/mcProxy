@@ -4,7 +4,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.error.NkvRpcError;
-//定义网络通信协议包接口
+
 public interface NkvRpcPacket {
 	public ChannelBuffer encode() throws NkvRpcError;
 	public int getChannelSeq();
