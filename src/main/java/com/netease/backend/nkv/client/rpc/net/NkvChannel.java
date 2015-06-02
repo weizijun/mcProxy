@@ -20,7 +20,7 @@ public class NkvChannel {
 	protected static final Logger log = LoggerFactory.getLogger(NkvChannel.class);
 
 	private NkvConnector connector;
-	private Channel channelImpl = null;//对应通信socketChannel
+	private Channel channelImpl = null;
 	private Throwable cause = null;
 
 	private Object sessionLock = new Object();
@@ -33,7 +33,6 @@ public class NkvChannel {
 	
 	private AtomicInteger waitConnectCount = new AtomicInteger(0);
 	
-	//key为namespace，value为flowLimit
 	private ConcurrentHashMap<Short, FlowLimit> flowLimitLevel = new ConcurrentHashMap<Short, FlowLimit>();
 	
 	static {
@@ -90,7 +89,7 @@ public class NkvChannel {
 		int chid = 0;//channelSeq.getAndIncrement();
 		do {
 			chid = channelSeq.getAndIncrement();
-		} while (chid == -1 || chid == 0);//chid不能为0，chid等于-1被flowlimit占用
+		} while (chid == -1 || chid == 0);
 		return chid;
 	}
 
@@ -102,12 +101,11 @@ public class NkvChannel {
 		return factory;
 	}
 	
-	//连接建立完成后，将对应的NkvChannel attach到Channel
 	ChannelFutureListener ioFutureListener = new ChannelFutureListener() {
 		
 		public void operationComplete(ChannelFuture future) throws Exception {
 			cause = future.getCause();
-			//设置channelImpl和attachment
+			
 			channelImpl = future.getChannel();
 			channelImpl.setAttachment(NkvChannel.this);
 			
@@ -144,7 +142,6 @@ public class NkvChannel {
 		return cause;
 	}
 	
-	//流控检查
 	public boolean isTrafficDataOverflow(short ns) {
 		if (ns <= 0) return false;
 		
@@ -179,7 +176,6 @@ public class NkvChannel {
 		return ret;
 	}
 	
-	//设置指定namespace的flow状态
 	public void limitLevelTouch(short ns, FlowStatus status) {
 		 
 		switch (status) {
@@ -228,7 +224,6 @@ public class NkvChannel {
 		return future;
 	}
 	
-	//获取并移除future
 	public NkvFuture getAndRemoveCallTask(int channelSeq) {
 		NkvFuture future = tasks.remove(channelSeq);
 		return future;

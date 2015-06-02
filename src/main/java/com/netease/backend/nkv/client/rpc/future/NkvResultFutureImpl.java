@@ -17,7 +17,7 @@ import com.netease.backend.nkv.client.rpc.net.NkvFuture.NkvFutureListener;
 
 public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends NkvResultFuture<T> {
 
-	NkvFuture impl;
+	private NkvFuture impl;
 	NkvResultCast<S, T> cast;
 	
 	Class<S> retClst;
@@ -159,5 +159,9 @@ public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends Nk
 		catch (NkvCastIllegalContext e) {
 			throw new ExecutionException(e);
 		}
+	}
+
+	public NkvFuture getImpl() {
+		return impl;
 	}
 }

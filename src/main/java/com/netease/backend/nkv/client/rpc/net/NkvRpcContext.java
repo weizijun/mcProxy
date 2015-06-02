@@ -17,8 +17,8 @@ import com.netease.backend.nkv.client.Result.ResultCode;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.error.NkvFlowLimit;
 import com.netease.backend.nkv.client.error.NkvRpcError;
-import com.netease.backend.nkv.client.impl.ServerManager;
 import com.netease.backend.nkv.client.impl.NkvProcessor.NkvResultCast;
+import com.netease.backend.nkv.client.impl.ServerManager;
 import com.netease.backend.nkv.client.impl.invalid.InvalidServer;
 import com.netease.backend.nkv.client.packets.AbstractPacket;
 import com.netease.backend.nkv.client.packets.AbstractRequestPacket;
@@ -313,6 +313,10 @@ public class NkvRpcContext {
 				serverManager.checkVersion(packet.decodeConfigVersion());
 			}
 			future.setValue(packet);
+			
+			if (future.getClientChannel() != null) {
+				future.getClientSeq();
+			}
 		}
 		
 

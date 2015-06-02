@@ -15,6 +15,7 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import com.netease.backend.nkv.client.error.NkvAgain;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcContext.FailCounter;
+import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
 
 public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	private ReentrantLock lock = new ReentrantLock();
@@ -27,6 +28,9 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	private int waitCount = 0;
 	
 	NkvFutureListener listener = null;
+	
+	private McProxyChannel clientChannel;
+	private Integer clientSeq;
 	
 	public interface NkvFutureListener {
 		public void handle(Future<NkvRpcPacket> future);
@@ -175,6 +179,18 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 			throw new TimeoutException("Timeout, remote: " + this.addr);
 		}
 		return innerGet();
+	}
+	public McProxyChannel getClientChannel() {
+		return clientChannel;
+	}
+	public void setClientChannel(McProxyChannel clientChannel) {
+		this.clientChannel = clientChannel;
+	}
+	public Integer getClientSeq() {
+		return clientSeq;
+	}
+	public void setClientSeq(Integer clientSeq) {
+		this.clientSeq = clientSeq;
 	}
 
 }

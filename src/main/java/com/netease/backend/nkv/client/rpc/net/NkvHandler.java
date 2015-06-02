@@ -6,7 +6,6 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 
-//NkvHandler既是一个upstream流程，又是一个downstream流程
 public class NkvHandler extends SimpleChannelHandler {
 	
 	private NkvRpcContext context;

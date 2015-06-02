@@ -90,7 +90,7 @@ public class NkvProcessor {
 	public Map<SocketAddress, List<byte[]>> matchDataServer(List<byte[]> keys) throws NkvRpcError{
 		return matchDataServer(null, keys);
 	}
-	//决定了NkvClient返回的future是NkvResultFuture	
+	
 	public <S extends AbstractResponsePacket, T> NkvResultFutureImpl<S, Result<T>> callDataServerAsync(SocketAddress addr, AbstractRequestPacket req, long timeout, Class<S> respCls, NkvResultCast<S, Result<T>> cast) 
 			throws NkvRpcError, NkvFlowLimit {
 		if (addr == null) {
@@ -119,7 +119,7 @@ public class NkvProcessor {
 	}
 
 	public interface NkvResultCast<S, T> {
-		//用于将Response S转化为Result<T>接口
+		//锟斤拷锟节斤拷Response S转锟斤拷为Result<T>锟接匡拷
 		public T cast(S s, Object context) throws NkvRpcError, NkvCastIllegalContext;
 	}
 	

@@ -29,7 +29,7 @@ public class DeamondThreadFactory implements ThreadFactory {
 		group = (s != null) ? s.getThreadGroup() : Thread.currentThread()
 				.getThreadGroup();
 		namePrefix = prefix + "-pool-" + poolNumber.getAndIncrement()
-				+ "-redis-cloud-netty-nio-thread-";
+				+ "-mcProxy-nio-thread-";
 	}
 
 	public Thread newThread(Runnable r) {

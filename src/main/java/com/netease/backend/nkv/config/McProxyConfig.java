@@ -1,6 +1,6 @@
-package com.netease.backend.nkv.client.rpc.net;
+package com.netease.backend.nkv.config;
 
-public class NettyConfig {
+public class McProxyConfig {
 	private short port;
 
 	private int bossThreadCount;
