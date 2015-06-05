@@ -14,6 +14,7 @@ import org.jboss.netty.channel.ChannelFutureListener;
 
 import com.netease.backend.nkv.client.error.NkvAgain;
 import com.netease.backend.nkv.client.error.NkvException;
+import com.netease.backend.nkv.client.packets.AbstractPacket;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcContext.FailCounter;
 import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
 
@@ -31,6 +32,7 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	
 	private McProxyChannel clientChannel;
 	private Integer clientSeq;
+	private AbstractPacket requestPacket;
 	
 	public interface NkvFutureListener {
 		public void handle(Future<NkvRpcPacket> future);
@@ -191,6 +193,12 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	}
 	public void setClientSeq(Integer clientSeq) {
 		this.clientSeq = clientSeq;
+	}
+	public AbstractPacket getRequestPacket() {
+		return requestPacket;
+	}
+	public void setRequestPacket(AbstractPacket requestPacket) {
+		this.requestPacket = requestPacket;
 	}
 
 }

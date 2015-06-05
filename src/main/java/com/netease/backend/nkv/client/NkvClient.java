@@ -9,6 +9,9 @@ import com.netease.backend.nkv.client.error.NkvFlowLimit;
 import com.netease.backend.nkv.client.error.NkvQueueOverflow;
 import com.netease.backend.nkv.client.error.NkvRpcError;
 import com.netease.backend.nkv.client.error.NkvTimeout;
+import com.netease.backend.nkv.client.packets.common.ReturnResponse;
+import com.netease.backend.nkv.client.packets.dataserver.GetResponse;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 
 
 public interface NkvClient {
@@ -126,11 +129,11 @@ public interface NkvClient {
 		}
 	}
 	
-	public Future<Result<Void>> putAsync(short ns, byte[] key, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
+	public NkvResultFutureImpl<ReturnResponse, Result<Void>> putAsync(short ns, byte[] key, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 	
 	public Future<Result<Void>> putIfNoExistAsync(short ns, byte[] key, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 	
-	public Future<Result<byte[]>> getAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit ;
+	public NkvResultFutureImpl<GetResponse, Result<byte[]>> getAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit ;
 	
 	public Future<ResultMap<byte[], Result<Void>>> batchPutAsync(short ns, final Map<byte[], byte[]> kv, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 

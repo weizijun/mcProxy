@@ -16,10 +16,10 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netease.backend.nkv.client.Result;
-import com.netease.backend.nkv.client.ResultMap;
 import com.netease.backend.nkv.client.NkvBlockingQueue;
 import com.netease.backend.nkv.client.NkvClient;
+import com.netease.backend.nkv.client.Result;
+import com.netease.backend.nkv.client.ResultMap;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.error.NkvFlowLimit;
 import com.netease.backend.nkv.client.error.NkvQueueOverflow;
@@ -303,7 +303,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return new NkvResultFutureListImpl<DumpAllResponse, Entry<byte[], byte[]>>(futureSet);
 	}
 
-	private Future<Result<Void>> putAsyncImpl(short ns, byte[] pkey, byte[] skey, int keyFlag, byte[] value, int valueFlag, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	private NkvResultFutureImpl<ReturnResponse, Result<Void>> putAsyncImpl(short ns, byte[] pkey, byte[] skey, int keyFlag, byte[] value, int valueFlag, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (opt == null) {
 			opt = defaultOptions;
 		}
@@ -320,7 +320,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.PUT);
 	}
 	
-	public Future<Result<Void>> putAsync(short ns, byte[] key, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<ReturnResponse, Result<Void>> putAsync(short ns, byte[] key, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		//why ?
 		int keyFlag = (opt != null && opt.getRequestOption() != null && opt.getRequestOption().getVersion() != 0)  ? 1 : 0;
 		return putAsyncImpl(ns, key, null, keyFlag, value, 0, opt);
@@ -349,7 +349,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return putIfNoExistAsyncImpl(ns, key, null, keyFlag, value, 0, opt);
 	}
 	
-	private Future<Result<byte[]>> getAsyncImpl(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	private NkvResultFutureImpl<GetResponse, Result<byte[]>> getAsyncImpl(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (opt == null)
 			opt = defaultOptions;
 		else if (opt.getExpire() != 0)
@@ -368,7 +368,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), GetResponse.class, NkvResultCastFactory.GET);
 	}
 	
-	private Future<Result<byte[]>> touchAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	private NkvResultFutureImpl<GetResponse, Result<byte[]>> touchAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		TouchRequest request = TouchRequest.build(ns, pkey, skey, opt.getExpire());
 		CompressContext context = new CompressContext((short)(skey != null ? pkey.length : 0));
 		request.setContext(context);
@@ -382,7 +382,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), GetResponse.class, NkvResultCastFactory.GET);
 	}
 
-	public Future<Result<byte[]>> getAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<GetResponse, Result<byte[]>> getAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		return getAsyncImpl(ns, key, null, opt);
 	}
 	
@@ -477,7 +477,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), IncDecResponse.class, NkvResultCastFactory.ADD_COUNT_BOUNDED);
 	}*/
 	
-	public Future<Result<Void>> setCountAsync(short ns, byte[] key, int count, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<ReturnResponse, Result<Void>> setCountAsync(short ns, byte[] key, int count, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		byte[] incValue = NkvUtil.encodeCountValue(count);
 		return putAsyncImpl(ns, key, null, 0, incValue, NkvConstant.NKV_ITEM_FLAG_ADDCOUNT, opt);
 	}
@@ -576,7 +576,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return batchLockKeyAsync(ns, keys, LockRequest.UNLOCK_VALUE, opt);
 	}
 
-	public Future<Result<Void>> prefixPutAsync(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<ReturnResponse, Result<Void>> prefixPutAsync(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		return putAsyncImpl(ns, pkey, skey, 0, value, 0, opt);
 	}
 	
@@ -602,7 +602,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return new NkvResultFutureSetImpl<BatchReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
 	}
 	
-	public Future<Result<byte[]>> prefixGetAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<GetResponse, Result<byte[]>> prefixGetAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (opt == null) 
 			opt = defaultOptions;
 		if (skey == null) {
@@ -611,7 +611,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return getAsyncImpl(ns, pkey, skey, opt);
 	}
 	
-	public Future<Result<Void>> prefixSetCountAsync(short ns, byte[] pkey, byte[] skey, int count, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureImpl<ReturnResponse, Result<Void>> prefixSetCountAsync(short ns, byte[] pkey, byte[] skey, int count, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (skey == null) {
 			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
 		}

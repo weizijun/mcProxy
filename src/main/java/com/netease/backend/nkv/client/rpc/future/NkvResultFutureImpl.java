@@ -1,5 +1,7 @@
 package com.netease.backend.nkv.client.rpc.future;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +46,8 @@ public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends Nk
 
 		public void handle(Future<NkvRpcPacket> future) {
 			queue.offer(inst);	
+			ConcurrentMap<String, NkvResultFuture<?>> map = new ConcurrentHashMap<String, NkvResultFuture<?>>();
+			map.put("key", inst);
 		}
 	}
 

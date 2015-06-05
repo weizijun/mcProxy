@@ -5,6 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -24,8 +26,10 @@ import com.netease.backend.nkv.client.packets.AbstractPacket;
 import com.netease.backend.nkv.client.packets.AbstractRequestPacket;
 import com.netease.backend.nkv.client.packets.AbstractResponsePacket;
 import com.netease.backend.nkv.client.packets.dataserver.TrafficCheckResponse;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.client.rpc.protocol.tair2_3.PacketManager;
+import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
 
 public class NkvRpcContext {
 	private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -260,6 +264,25 @@ public class NkvRpcContext {
 		NkvFuture future = this.callAsync(channel, request, timeout, factory);
 		return new NkvResultFutureImpl<S, Result<T>>(future, retCls, cast, request.getContext());
 	}
+	
+	public <PacketT extends AbstractRequestPacket> NkvFuture callAsync(SocketAddress addr, PacketT request, final long timeout, NkvRpcPacketFactory factory) throws NkvRpcError, NkvFlowLimit {
+		final NkvChannel channel = obtainSession(addr, factory, 0);
+		if (channel == null) {
+			NkvRpcError e = new NkvRpcError("aync call failed, session not created, GroupName: " + this.group + ", Area: " + request.getNamespace() + ",  remote: " + addr.toString());
+			recordExceptionToEagleeye(ResultCode.FAILED, request.getNamespace(), PacketManager.getPacketCode(request.getClass()), e, addr);
+			throw e; 
+		}
+
+		checkLevelDown(channel, factory, request.getNamespace());
+		
+		if (channel.isTrafficDataOverflow(request.getNamespace())) {
+			NkvFlowLimit e = new NkvFlowLimit("rpc overflow, GroupName: " + this.group + ", Area: " + request.getNamespace() + ", remote: " + channel.getDestAddress().toString());
+			recordExceptionToEagleeye(ResultCode.RPC_OVERFLOW, request.getNamespace(), PacketManager.getPacketCode(request.getClass()), e, addr);
+			throw e;
+		}
+		return this.callAsync(channel, request, timeout, factory);
+	}
+	
 	public <PacketT extends AbstractRequestPacket, S extends AbstractResponsePacket, T> NkvResultFutureImpl<S, Result<T>> callInvalServerAsync(
 			InvalidServer ivs, PacketT request, final long timeout,
 			Class<S> retCls, NkvRpcPacketFactory factory,
@@ -315,7 +338,21 @@ public class NkvRpcContext {
 			future.setValue(packet);
 			
 			if (future.getClientChannel() != null) {
-				future.getClientSeq();
+				McProxyChannel clientChannel = future.getClientChannel();
+				NkvResultFuture<?> resultFuture = clientChannel.getResultFuture(future.getClientSeq());
+				String strResult = resultFuture.get().toString() + "\n";
+				ChannelBuffer returnData = ChannelBuffers.buffer(strResult.length());
+				returnData.writeBytes(strResult.getBytes());
+				future.getClientChannel().sendPacket(returnData);				
+				
+//				if (packet.getBody() instanceof GetResponse) {
+//					Future<Result<byte[]>> result = new NkvResultFutureImpl<GetResponse, Result<byte[]>>(future, GetResponse.class, NkvResultCastFactory.GET, future.getRequestPacket().getContext());
+//					
+//					String strResult = result.get().toString() + "\n";
+//					ChannelBuffer returnData = ChannelBuffers.buffer(strResult.length());
+//					returnData.writeBytes(strResult.getBytes());
+//					future.getClientChannel().sendPacket(returnData);
+//				}
 			}
 		}
 		

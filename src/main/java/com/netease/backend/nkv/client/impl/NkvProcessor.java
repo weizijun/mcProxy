@@ -18,6 +18,7 @@ import com.netease.backend.nkv.client.packets.AbstractRequestPacket;
 import com.netease.backend.nkv.client.packets.AbstractResponsePacket;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.client.rpc.net.NkvBgWorker;
+import com.netease.backend.nkv.client.rpc.net.NkvFuture;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcContext;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcPacketFactory;
 import com.netease.backend.nkv.client.rpc.protocol.tair2_3.PacketFactory;
@@ -98,6 +99,14 @@ public class NkvProcessor {
 		}
 		return context.callAsync(addr, req, timeout, respCls, packet2_3Factory, cast);
 	}
+	
+	public NkvFuture callDataServerAsync(SocketAddress addr, AbstractRequestPacket req, long timeout) 
+			throws NkvRpcError, NkvFlowLimit {
+		if (addr == null) {
+			throw new NkvRpcError("Message: not find any DataServer, GroupName: " + this.group +", AREA: " + req.getNamespace());
+		}
+		return context.callAsync(addr, req, timeout, packet2_3Factory);
+	}
 
 	public <S extends AbstractResponsePacket, T> NkvResultFutureImpl<S, Result<T>> callInvalidServerAsync(AbstractRequestPacket req, long timeout, Class<S> respCls, NkvResultCast<S, Result<T>> cast) 
 			throws NkvRpcError, NkvFlowLimit {
@@ -119,7 +128,6 @@ public class NkvProcessor {
 	}
 
 	public interface NkvResultCast<S, T> {
-		//���ڽ�Response Sת��ΪResult<T>�ӿ�
 		public T cast(S s, Object context) throws NkvRpcError, NkvCastIllegalContext;
 	}
 	

@@ -9,6 +9,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 
 import com.netease.backend.nkv.client.error.NkvException;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture;
 
 /**
@@ -19,6 +20,7 @@ public class McProxyChannel {
 	private Channel channelImpl = null;
 	private final static AtomicInteger channelSeq ;
 	private ConcurrentMap<Integer, NkvFuture> futureMap = new ConcurrentHashMap<Integer, NkvFuture>();
+	private ConcurrentMap<Integer, NkvResultFuture<?>> futureResultMap = new ConcurrentHashMap<Integer, NkvResultFuture<?>>();
 	
 	static {
 		channelSeq = new AtomicInteger(1);
@@ -32,6 +34,16 @@ public class McProxyChannel {
 		Integer seq = channelSeq.getAndIncrement();
 		futureMap.put(seq, future);
 		return seq;
+	}
+	
+	public Integer putResultFuture(NkvResultFuture<?> future) {
+		Integer seq = channelSeq.getAndIncrement();
+		futureResultMap.put(seq, future);
+		return seq;
+	}
+	
+	public NkvResultFuture<?> getResultFuture(Integer seq) {
+		return futureResultMap.get(seq);
 	}
 	
 	public NkvFuture getResult(Integer seq) {

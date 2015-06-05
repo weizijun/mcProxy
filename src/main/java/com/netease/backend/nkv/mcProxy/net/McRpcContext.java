@@ -15,6 +15,7 @@ import com.netease.backend.nkv.client.NkvClient.NkvOption;
 import com.netease.backend.nkv.client.Result;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.impl.DefaultNkvClient;
+import com.netease.backend.nkv.client.packets.common.ReturnResponse;
 import com.netease.backend.nkv.client.packets.dataserver.GetResponse;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.config.NkvConfig;
@@ -83,21 +84,54 @@ public class McRpcContext {
 			McProxyChannel mcProxyChannel = (McProxyChannel) channel.getAttachment();
 			
 			String key = cmdArray[1];
-			Future<Result<byte[]>> future = nkvClient.getAsync(ns, key.getBytes(), opt);
-			@SuppressWarnings("unchecked")
-			NkvResultFutureImpl<GetResponse, Result<byte[]>> realFuture = (NkvResultFutureImpl<GetResponse, Result<byte[]>>) future;
-			realFuture.getImpl().setClientChannel((McProxyChannel) channel.getAttachment());
-			Integer clientSeq = mcProxyChannel.putResult(realFuture.getImpl());
-			realFuture.getImpl().setClientSeq(clientSeq);
+			NkvResultFutureImpl<GetResponse, Result<byte[]>> future = nkvClient.getAsync(ns, key.getBytes(), opt);
+			
+			future.getImpl().setClientChannel(mcProxyChannel);
+			Integer clientSeq = mcProxyChannel.putResultFuture(future);
+			future.getImpl().setClientSeq(clientSeq);
 		} else if (cmdName.equalsIgnoreCase("set") && cmdArray.length == 3) {
 			String key = cmdArray[1];
 			String value = cmdArray[2];
-			Result<Void> r = nkvClient.put(ns, key.getBytes(), value.getBytes(), opt);
-			System.out.println(r);
-			String result = r.toString() + "\n";
-			ChannelBuffer returnData = ChannelBuffers.buffer(result.length());
-			returnData.writeBytes(result.getBytes());
-			channel.write(returnData);
+			
+			McProxyChannel mcProxyChannel = (McProxyChannel) channel.getAttachment();
+			
+			Future<Result<Void>> future = nkvClient.putAsync(ns, key.getBytes(), value.getBytes(), opt);
+			
+			@SuppressWarnings("unchecked")
+			NkvResultFutureImpl<ReturnResponse, Result<Void>> realFuture = (NkvResultFutureImpl<ReturnResponse, Result<Void>>) future;
+			realFuture.getImpl().setClientChannel(mcProxyChannel);
+			Integer clientSeq = mcProxyChannel.putResultFuture(realFuture);
+			realFuture.getImpl().setClientSeq(clientSeq);
+			
+//			nkvClient.notifyFuture(future, new NkvClientCallBack() {
+//				@Override
+//				public void handle(Future<?> future, Object context) {
+//					McProxyChannel channel = (McProxyChannel) context;
+//					
+//					try {
+//						@SuppressWarnings("unchecked")
+//						Result<Void> r = (Result<Void>) future.get();
+//						
+//						String result = r.toString() + "\n";
+//						ChannelBuffer returnData = ChannelBuffers.buffer(result.length());
+//						returnData.writeBytes(result.getBytes());
+//						channel.sendPacket(returnData);
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					} catch (ExecutionException e) {
+//						e.printStackTrace();
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//					}
+//
+//				}
+//			}, mcProxyChannel);
+//			Result<Void> r = nkvClient.put(ns, key.getBytes(), value.getBytes(), opt);
+//			System.out.println(r);
+//			String result = r.toString() + "\n";
+//			ChannelBuffer returnData = ChannelBuffers.buffer(result.length());
+//			returnData.writeBytes(result.getBytes());
+//			channel.write(returnData);
 		} else if (cmdName.equalsIgnoreCase("remove") && cmdArray.length == 2){
 			String key = cmdArray[1];
 			Result<Void> r = nkvClient.invalidByProxy(ns, key.getBytes(), opt);
