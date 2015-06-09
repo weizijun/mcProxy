@@ -14,9 +14,8 @@ import org.jboss.netty.channel.ChannelFutureListener;
 
 import com.netease.backend.nkv.client.error.NkvAgain;
 import com.netease.backend.nkv.client.error.NkvException;
-import com.netease.backend.nkv.client.packets.AbstractPacket;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcContext.FailCounter;
-import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
+import com.netease.backend.nkv.mcProxy.net.QueryMsg;
 
 public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	private ReentrantLock lock = new ReentrantLock();
@@ -30,9 +29,7 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	
 	NkvFutureListener listener = null;
 	
-	private McProxyChannel clientChannel;
-	private Integer clientSeq;
-	private AbstractPacket requestPacket;
+	private QueryMsg queryMsg;
 	
 	public interface NkvFutureListener {
 		public void handle(Future<NkvRpcPacket> future);
@@ -182,23 +179,10 @@ public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 		}
 		return innerGet();
 	}
-	public McProxyChannel getClientChannel() {
-		return clientChannel;
+	public QueryMsg getQueryMsg() {
+		return queryMsg;
 	}
-	public void setClientChannel(McProxyChannel clientChannel) {
-		this.clientChannel = clientChannel;
+	public void setQueryMsg(QueryMsg queryMsg) {
+		this.queryMsg = queryMsg;
 	}
-	public Integer getClientSeq() {
-		return clientSeq;
-	}
-	public void setClientSeq(Integer clientSeq) {
-		this.clientSeq = clientSeq;
-	}
-	public AbstractPacket getRequestPacket() {
-		return requestPacket;
-	}
-	public void setRequestPacket(AbstractPacket requestPacket) {
-		this.requestPacket = requestPacket;
-	}
-
 }

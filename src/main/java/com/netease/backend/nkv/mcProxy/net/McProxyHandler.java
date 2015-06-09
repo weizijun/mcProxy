@@ -8,12 +8,16 @@ import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 
+import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
+import com.netease.backend.nkv.mcProxy.McProxyContext;
+import com.netease.backend.nkv.mcProxy.command.Command;
+
 public class McProxyHandler extends SimpleChannelHandler {
-	private McRpcContext context;
+	private McProxyContext context;
 
 	private static final Logger logger = Logger.getLogger(McProxyHandler.class);
 
-	public McProxyHandler(McRpcContext context) {
+	public McProxyHandler(McProxyContext context) {
 		this.context = context;
 	}
 
@@ -21,8 +25,7 @@ public class McProxyHandler extends SimpleChannelHandler {
 	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e)
 			throws Exception {
 		logger.debug("McProxyHandler messageReceived");
-		ChannelBuffer buffer = (ChannelBuffer)e.getMessage();
-		context.messageReceived(ctx.getChannel(), buffer);
+		context.messageReceived(ctx.getChannel(), (Command)e.getMessage());
 	}
 
 	@Override

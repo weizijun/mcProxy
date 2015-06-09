@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -29,7 +28,9 @@ import com.netease.backend.nkv.client.packets.dataserver.TrafficCheckResponse;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.client.rpc.protocol.tair2_3.PacketManager;
+import com.netease.backend.nkv.mcProxy.command.Command;
 import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
+import com.netease.backend.nkv.mcProxy.net.QueryMsg;
 
 public class NkvRpcContext {
 	private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -337,26 +338,29 @@ public class NkvRpcContext {
 			}
 			future.setValue(packet);
 			
-			if (future.getClientChannel() != null) {
-				McProxyChannel clientChannel = future.getClientChannel();
-				NkvResultFuture<?> resultFuture = clientChannel.getResultFuture(future.getClientSeq());
-				String strResult = resultFuture.get().toString() + "\n";
-				ChannelBuffer returnData = ChannelBuffers.buffer(strResult.length());
-				returnData.writeBytes(strResult.getBytes());
-				future.getClientChannel().sendPacket(returnData);				
+			QueryMsg currentMsg = future.getQueryMsg();
+			if (currentMsg != null) {
+				currentMsg.setDone(true);
 				
-//				if (packet.getBody() instanceof GetResponse) {
-//					Future<Result<byte[]>> result = new NkvResultFutureImpl<GetResponse, Result<byte[]>>(future, GetResponse.class, NkvResultCastFactory.GET, future.getRequestPacket().getContext());
-//					
-//					String strResult = result.get().toString() + "\n";
-//					ChannelBuffer returnData = ChannelBuffers.buffer(strResult.length());
-//					returnData.writeBytes(strResult.getBytes());
-//					future.getClientChannel().sendPacket(returnData);
-//				}
+				McProxyChannel mcProxyChannel = currentMsg.getChannel();
+				
+				try {
+					mcProxyChannel.lockHead();
+					
+					QueryMsg firstMsg = mcProxyChannel.getFirstMsg();
+					if (firstMsg != null && true == firstMsg.isDone()) {
+						mcProxyChannel.pollFirstMsg();
+						NkvResultFuture<?> resultFuture = firstMsg.getFuture();
+						Command command = firstMsg.getCommand();
+						Result<?> result = (Result<?>) resultFuture.get();
+						ChannelBuffer returnData = command.encodeTo(result);
+						mcProxyChannel.sendPacket(returnData);
+					}
+				} finally {
+					mcProxyChannel.unlockHead();
+				}
 			}
 		}
-		
-
 	}
 
 	public void exceptionCaught(Channel channel, Throwable cause)

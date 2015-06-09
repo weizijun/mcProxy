@@ -15,10 +15,8 @@ import org.jboss.netty.handler.timeout.ReadTimeoutHandler;
 import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.Timer;
 
-import com.netease.backend.nkv.client.error.NkvException;
-import com.netease.backend.nkv.client.impl.DefaultNkvClient;
 import com.netease.backend.nkv.config.McProxyConfig;
-import com.netease.backend.nkv.config.NkvConfig;
+import com.netease.backend.nkv.mcProxy.McProxyContext;
 
 public class McProxyServer {
 	private static final Logger logger = Logger.getLogger(McProxyServer.class);
@@ -31,7 +29,7 @@ public class McProxyServer {
 
 	private ServerBootstrap bootstrap = null;
 	
-	private McRpcContext context = new McRpcContext();
+	private McProxyContext context = new McProxyContext();
 	
 	public McProxyServer(McProxyConfig config) {
 		this.config = config;
@@ -58,7 +56,7 @@ public class McProxyServer {
 			public ChannelPipeline getPipeline() {
 				ChannelPipeline pipeline = Channels.pipeline();
 				pipeline.addLast("timeOutHandler", new ReadTimeoutHandler(timer, config.getKeepAliveTimeoutSeconds()));
-				pipeline.addLast("LineDecoder", new LineBasedFrameDecoder(256));
+				pipeline.addLast("mcProxyDecoder", new McProxyDecoder());
 				pipeline.addLast("handler", new McProxyHandler(context));
 				return pipeline;
 			}
@@ -73,18 +71,5 @@ public class McProxyServer {
 	public void destory() {
 		logger.info("mcProxy Server destory");
 		bootstrap.shutdown();
-	}
-	
-	public static void main(String[] args) {
-		McProxyConfig config = new McProxyConfig();
-		config.setBossThreadCount(1);
-		config.setWorkerThreadCount(4);
-		config.setPort((short)11211);
-		config.setKeepAlive(true);
-		config.setTcpNoDelay(true);
-		config.setKeepAliveTimeoutSeconds(60);
-		
-		McProxyServer server = new McProxyServer(config);
-		server.init();
 	}
 }

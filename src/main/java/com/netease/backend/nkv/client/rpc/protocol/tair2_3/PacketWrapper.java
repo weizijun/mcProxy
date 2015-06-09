@@ -71,7 +71,7 @@ public class PacketWrapper implements NkvRpcPacket {
 	public int getChannelSeq() {
 		return header.getChannelId();
 	}
-	//根据response中class构建body的packet
+
 	public boolean assignBodyBuffer(ChannelBuffer in) throws NkvRpcError {
 		if (in.readableBytes() < getBodyLength()) {
 			return false;

@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.error.NkvTimeout;
 import com.netease.backend.nkv.client.rpc.net.FlowLimit.FlowStatus;
-import com.netease.backend.nkv.client.rpc.protocol.tair2_3.PacketHeader;
 
 
 public class NkvChannel {

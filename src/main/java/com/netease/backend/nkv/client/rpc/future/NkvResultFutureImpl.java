@@ -1,7 +1,5 @@
 package com.netease.backend.nkv.client.rpc.future;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -14,8 +12,8 @@ import com.netease.backend.nkv.client.impl.NkvProcessor.NkvResultCast;
 import com.netease.backend.nkv.client.packets.AbstractResponsePacket;
 import com.netease.backend.nkv.client.packets.common.ReturnResponse;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture;
-import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture.NkvFutureListener;
+import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
 
 public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends NkvResultFuture<T> {
 
@@ -45,9 +43,7 @@ public class NkvResultFutureImpl<S extends AbstractResponsePacket, T> extends Nk
 		}
 
 		public void handle(Future<NkvRpcPacket> future) {
-			queue.offer(inst);	
-			ConcurrentMap<String, NkvResultFuture<?>> map = new ConcurrentHashMap<String, NkvResultFuture<?>>();
-			map.put("key", inst);
+			queue.offer(inst);
 		}
 	}
 
