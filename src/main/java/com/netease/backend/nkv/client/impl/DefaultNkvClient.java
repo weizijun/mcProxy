@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netease.backend.nkv.client.Result;
-import com.netease.backend.nkv.client.ResultMap;
 import com.netease.backend.nkv.client.StreamResult;
 import com.netease.backend.nkv.client.error.NkvFlowLimit;
 import com.netease.backend.nkv.client.error.NkvRpcError;
@@ -114,25 +113,6 @@ public class DefaultNkvClient extends AbstractNkvClient {
 		Future<Result<Void>> future = unlockAsync(ns, key, opt);
 		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
 	}
-
-	public ResultMap<byte[], Result<Void>> batchPut(short ns, Map<byte[], byte[]> kv, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException  {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = batchPutAsync(ns, kv, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<byte[]>> batchGet(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException  {
-		Future<ResultMap<byte[], Result<byte[]>>> futureSet = batchGetAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<Void>> batchLock(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException  {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = batchLockAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	public ResultMap<byte[], Result<Void>> batchUnlock(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException  {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = batchUnlockAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
 	
 	public Result<Void> prefixPut(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
 		Future<Result<Void>> future = prefixPutAsync(ns, pkey, skey, value, opt);
@@ -151,31 +131,6 @@ public class DefaultNkvClient extends AbstractNkvClient {
 	
 	public Result<byte[]> prefixGetHidden(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
 		Future<Result<byte[]>> future = prefixGetHiddenAsync(ns, pkey, skey, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<Void>> prefixPutMulti(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = prefixPutMultiAsync(ns, pkey, kvs, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
-	public ResultMap<byte[], Result<Void>> prefixPutMulti(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, final Map<byte[], Pair<Integer, RequestOption>> cvs, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = prefixPutMultiAsync(ns, pkey, kvs, cvs, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<Void>> prefixSetCountMulti(short ns, byte[] pkey, final Map<byte[], Pair<Integer, RequestOption>> kvs, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = prefixSetCountMultiAsync(ns, pkey, kvs, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<byte[]>> prefixGetMulti(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<byte[]>>> future = prefixGetMultiAsync(ns, pkey, skeys, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<byte[]>> prefixGetHiddenMulti(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<byte[]>>> future = prefixGetHiddenMultiAsync(ns, pkey, skeys, opt);
 		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
 	}
 	
@@ -207,35 +162,7 @@ public class DefaultNkvClient extends AbstractNkvClient {
 //		Future<Result<Integer>> future = prefixDecrAsync(ns, pkey, skey, value, initValue, lowBound, upperBound, opt);
 //		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
 //	}
-	
-	public ResultMap<byte[], Result<Integer>> prefixIncrMulti(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Integer>>> futureSet = prefixIncrMultiAsync(ns, pkey, skv, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-//	public ResultMap<byte[], Result<Integer>> prefixIncrMulti(short ns, byte[] pkey, Map<byte[], Counter> skv, int lowBound, int upperBound, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-//		Future<ResultMap<byte[], Result<Integer>>> futureSet = prefixIncrMultiAsync(ns, pkey, skv, lowBound, upperBound, opt);
-//		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-//	}
-	
-	public ResultMap<byte[], Result<Integer>> prefixDecrMulti(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Integer>>> futureSet = prefixDecrMultiAsync(ns, pkey, skv, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-//	public ResultMap<byte[], Result<Integer>> prefixDecrMulti(short ns, byte[] pkey, Map<byte[], Counter> skv, int lowBound, int upperBound, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-//		Future<ResultMap<byte[], Result<Integer>>> futureSet = prefixDecrMultiAsync(ns, pkey, skv, lowBound, upperBound, opt);
-//		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-//	}
-	
-	public ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>> batchPrefixGetMulti(short ns, Map<byte[], List<byte[]>> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>> futureSet = batchPrefixGetMultiAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
-	public ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>> batchPrefixGetHiddenMulti(short ns, Map<byte[], List<byte[]>> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>> futureSet = batchPrefixGetHiddenMultiAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
+
 	public Result<Void> invalidByProxy(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
 		Future<Result<Void>> future = invalidByProxyAsync(ns, key, opt);
 		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());	
@@ -248,26 +175,6 @@ public class DefaultNkvClient extends AbstractNkvClient {
 	public Result<Void> prefixInvalidByProxy(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
 		Future<Result<Void>> future = prefixInvalidByProxyAsync(ns, pkey, skey, opt);
 		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
-	public ResultMap<byte[], Result<Void>> prefixInvalidMultiByProxy(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = prefixInvalidMultiByProxyAsync(ns, pkey, skeys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
-	public Result<Void> prefixHideByProxy(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<Result<Void>> future = prefixHideByProxyAsync(ns, pkey, skey, opt);
-		return futureGet(future, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-	
-	public ResultMap<byte[], Result<Void>> prefixHideMultiByProxy(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = prefixHideMultiByProxyAsync(ns, pkey, skeys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
-	}
-
-	public ResultMap<byte[], Result<Void>> batchInvalidByProxy(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> futureSet = batchInvalidByProxyAsync(ns, keys, opt);
-		return futureGet(futureSet, opt != null ? opt.getTimeout() : defaultOptions.getTimeout());
 	}
 		
 

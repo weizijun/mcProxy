@@ -14,18 +14,19 @@ import org.jboss.netty.channel.ChannelStateEvent;
 
 import com.netease.backend.nkv.client.NkvClient.NkvOption;
 import com.netease.backend.nkv.client.Result;
+import com.netease.backend.nkv.client.ResultMap;
 import com.netease.backend.nkv.client.error.McError;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.impl.DefaultNkvClient;
 import com.netease.backend.nkv.client.packets.common.ReturnResponse;
 import com.netease.backend.nkv.client.packets.dataserver.GetResponse;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFutureSetImpl;
 import com.netease.backend.nkv.config.McProxyConfig;
 import com.netease.backend.nkv.config.NkvConfig;
 import com.netease.backend.nkv.mcProxy.command.Command;
 import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
 import com.netease.backend.nkv.mcProxy.net.McProxyServer;
-import com.netease.backend.nkv.mcProxy.net.QueryMsg;
 
 /**
  * @author hzweizijun 
@@ -53,6 +54,8 @@ public class McProxyContext {
 		nkvClient.setSlave(nkvConfig.getSlave());
 		nkvClient.setGroup(nkvConfig.getGroup());
 		
+		opt.setTimeout(1);
+		
 		try {
 			nkvClient.init();
 		} catch (NkvException e) {
@@ -74,23 +77,28 @@ public class McProxyContext {
 		McProxyChannel mcProxyChannel = (McProxyChannel) channel.getAttachment();
 		
 		if (command.getCommandType() == CommandType.GET_ONE) {
-			NkvResultFutureImpl<GetResponse, Result<byte[]>> future = nkvClient.getAsync(ns, command.getKey().getBytes(), opt);
-			QueryMsg msg = new QueryMsg(future, mcProxyChannel, command);
+			NkvResultFutureImpl<GetResponse, Result<byte[]>> future = nkvClient.getAsync(ns, command.getKey(), opt);
+			QueryMsg msg = new QueryOneMsg(future, mcProxyChannel, command);
 			mcProxyChannel.offerMsg(msg);
 			future.getImpl().setQueryMsg(msg);
 		} else if (command.getCommandType() == CommandType.SET) {
-			NkvResultFutureImpl<ReturnResponse, Result<Void>> future = nkvClient.putAsync(ns, command.getKey().getBytes(), command.getValue(), opt);
-			QueryMsg msg = new QueryMsg(future, mcProxyChannel, command);
+			NkvResultFutureImpl<ReturnResponse, Result<Void>> future = nkvClient.putAsync(ns, command.getKey(), command.getValue(), opt);
+			QueryMsg msg = new QueryOneMsg(future, mcProxyChannel, command);
 			mcProxyChannel.offerMsg(msg);
 			future.getImpl().setQueryMsg(msg);
 		} else if (command.getCommandType() == CommandType.DELETE) {
-			Result<Void> r = nkvClient.invalidByProxy(ns, command.getKey().getBytes(), opt);
+			Result<Void> r = nkvClient.invalidByProxy(ns, command.getKey(), opt);
 			System.out.println(r);
 			String result = r.toString() + "\n";
 			System.out.println(result);
 			ChannelBuffer returnData = ChannelBuffers.buffer(result.length());
 			returnData.writeBytes(result.getBytes());
 			channel.write(returnData);
+		} else if (command.getCommandType() == CommandType.GET_MANY) {
+			NkvResultFutureSetImpl<GetResponse, byte[], ResultMap<String, Result<byte[]>>> futureSet = nkvClient.batchGetAsync(ns, command.getKeys(), opt);
+			QueryMsg msg = new QueryMultiMsg(futureSet, mcProxyChannel, command);
+			mcProxyChannel.offerMsg(msg);
+			futureSet.setFutureQueryMsg(msg);
 		} else {
 			logger.error("message format error:" + command.getCommandType());
 			throw new Exception("message error");
@@ -115,6 +123,9 @@ public class McProxyContext {
 				channel.write(errorBuffer);
 			} catch (Exception e) {
 				logger.error("", e);
+			} finally {
+				McProxyChannel mcProxyChannel = (McProxyChannel) channel.getAttachment();
+				mcProxyChannel.setCacheParsingCommand(null);
 			}
 		} else {
 			deleteSession(channel);

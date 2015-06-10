@@ -1,6 +1,5 @@
 package com.netease.backend.nkv.client.impl;
 import java.net.SocketAddress;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +25,6 @@ import com.netease.backend.nkv.client.error.NkvQueueOverflow;
 import com.netease.backend.nkv.client.error.NkvRpcError;
 import com.netease.backend.nkv.client.error.NkvTimeout;
 import com.netease.backend.nkv.client.impl.cast.NkvResultCastFactory;
-import com.netease.backend.nkv.client.packets.common.BatchReturnResponse;
 import com.netease.backend.nkv.client.packets.common.ReturnResponse;
 import com.netease.backend.nkv.client.packets.configserver.QueryInfoRequest;
 import com.netease.backend.nkv.client.packets.configserver.QueryInfoResponse;
@@ -45,33 +43,22 @@ import com.netease.backend.nkv.client.packets.dataserver.HideRequest;
 import com.netease.backend.nkv.client.packets.dataserver.IncDecRequest;
 import com.netease.backend.nkv.client.packets.dataserver.IncDecResponse;
 import com.netease.backend.nkv.client.packets.dataserver.LockRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixDeleteMultiRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixGetHiddenMultiRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixGetMultiRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixGetMultiResponse;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixHideMultiRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixIncDecRequest;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixIncDecResponse;
-import com.netease.backend.nkv.client.packets.dataserver.PrefixPutMultiRequest;
 import com.netease.backend.nkv.client.packets.dataserver.PutIfNoExistRequest;
 import com.netease.backend.nkv.client.packets.dataserver.PutRequest;
 import com.netease.backend.nkv.client.packets.dataserver.TouchRequest;
-//import com.netease.backend.nkv.client.packets.dataserver.RangeRequest;
-//import com.netease.backend.nkv.client.packets.dataserver.RangeResponse;
-//import com.netease.backend.nkv.client.packets.dataserver.SimplePrefixGetMultiRequest;
-//import com.netease.backend.nkv.client.packets.dataserver.SimplePrefixGetMultiResponse;
-import com.netease.backend.nkv.client.packets.invalidserver.HideByProxyMultiRequest;
 import com.netease.backend.nkv.client.packets.invalidserver.HideByProxyRequest;
-import com.netease.backend.nkv.client.packets.invalidserver.InvalidByProxyMultiRequest;
 import com.netease.backend.nkv.client.packets.invalidserver.InvalidByProxyRequest;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureListImpl;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureSetImpl;
 import com.netease.backend.nkv.client.rpc.net.DeamondThreadFactory;
-import com.netease.backend.nkv.client.util.ByteArray;
 import com.netease.backend.nkv.client.util.NkvConstant;
 import com.netease.backend.nkv.client.util.NkvUtil;
+//import com.netease.backend.nkv.client.packets.dataserver.RangeRequest;
+//import com.netease.backend.nkv.client.packets.dataserver.RangeResponse;
+//import com.netease.backend.nkv.client.packets.dataserver.SimplePrefixGetMultiRequest;
+//import com.netease.backend.nkv.client.packets.dataserver.SimplePrefixGetMultiResponse;
 
 
 public abstract class AbstractNkvClient implements NkvClient {
@@ -401,30 +388,8 @@ public abstract class AbstractNkvClient implements NkvClient {
 		}
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.DELETE);
 	}
-
-	public Future<ResultMap<byte[], Result<Void>>> batchPutAsync(short ns, final Map<byte[], byte[]> kv, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null)
-			opt = defaultOptions;
-		if (kv == null) {
-			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
-		}
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		//send the request.
-		for (Map.Entry<byte[], byte[]> entry : kv.entrySet()) {
-			byte[] key = entry.getKey();
-			byte[] value = entry.getValue();
-			SocketAddress addr = tairProcessor.matchDataServer(key);
-			//OK!!!
-			PutRequest request = PutRequest.build(ns, key, null, 0, value, 0, opt, compressOpt);
-			request.setContext(key);
-			NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.BATCH_PUT_OLD);
-			futureSet.add(future);
-		}
-		//return the future set.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
 	
-	public Future<ResultMap<byte[], Result<byte[]>>> batchGetAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
+	public NkvResultFutureSetImpl<GetResponse, byte[], ResultMap<String, Result<byte[]>>> batchGetAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (opt == null) 
 			opt = defaultOptions;
 		if (keys == null) {
@@ -432,19 +397,19 @@ public abstract class AbstractNkvClient implements NkvClient {
 		}
 		Map<SocketAddress, List<byte[]>> batch = tairProcessor.matchDataServer(keys);
 
-		Set<NkvResultFutureImpl<GetResponse, Result<ResultMap<byte[], Result<byte[]>>>>> futureSet = new HashSet<NkvResultFutureImpl<GetResponse, Result<ResultMap<byte[], Result<byte[]>>>>>();
+		Set<NkvResultFutureImpl<GetResponse, Result<ResultMap<String, Result<byte[]>>>>> futureSet = new HashSet<NkvResultFutureImpl<GetResponse, Result<ResultMap<String, Result<byte[]>>>>>();
 		//send the request
 		for (SocketAddress addr : batch.keySet()) {
 			List<byte[]> valList = batch.get(addr);
 			GetRequest request =  GetRequest.build(ns, valList, opt);
 			CompressContext context = new CompressContext(valList);
 			request.setContext(context);
-			NkvResultFutureImpl<GetResponse, Result<ResultMap<byte[], Result<byte[]>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), GetResponse.class, NkvResultCastFactory.BATCH_GET);
+			NkvResultFutureImpl<GetResponse, Result<ResultMap<String, Result<byte[]>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), GetResponse.class, NkvResultCastFactory.BATCH_GET);
 			//add the future to future set.
 			futureSet.add(future);
 		}
 		//return the future set.
-		return new NkvResultFutureSetImpl<GetResponse, byte[], ResultMap<byte[], Result<byte[]>>>(futureSet);
+		return new NkvResultFutureSetImpl<GetResponse, byte[], ResultMap<String, Result<byte[]>>>(futureSet);
 	}
 
 	private Future<Result<Integer>> addCountAsyncImpl(short ns, byte[] pkey, byte[] skey, int value, int defaultValue, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
@@ -547,35 +512,6 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.HIDE);
 	}
 
-	private Future<ResultMap<byte[], Result<Void>>> batchLockKeyAsync(short ns, List<byte[]> keys, int lockType, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null)
-			opt = defaultOptions;
-		if (keys == null) {
-			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
-		}
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		// send the request.
-		for (byte[] key : keys) {
-			SocketAddress addr = tairProcessor.matchDataServer(key);
-			//OK!!!
-			LockRequest request = LockRequest.build(ns, key, lockType);
-			request.setContext(key);
-			NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.BATCH_LOCK_KEY);
-			//add future
-			futureSet.add(future);
-		}
-		//return the future set.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-
-	public Future<ResultMap<byte[], Result<Void>>> batchLockAsync(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		return batchLockKeyAsync(ns, keys, LockRequest.LOCK_VALUE, opt);
-	}
-
-	public Future<ResultMap<byte[], Result<Void>>> batchUnlockAsync(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		return batchLockKeyAsync(ns, keys, LockRequest.UNLOCK_VALUE, opt);
-	}
-
 	public NkvResultFutureImpl<ReturnResponse, Result<Void>> prefixPutAsync(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		return putAsyncImpl(ns, pkey, skey, 0, value, 0, opt);
 	}
@@ -583,25 +519,7 @@ public abstract class AbstractNkvClient implements NkvClient {
 	public Future<Result<Void>> prefixPutIfNoExistAsync(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		return putIfNoExistAsyncImpl(ns, pkey, skey, 0, value, 0, opt);
 	}
-	
-	private Future<ResultMap<byte[], Result<Void>>> prefixDeleteMultiLocalAsyncImpl(short ns, byte[] pkey, final List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//OK!!!
-		PrefixDeleteMultiRequest request = PrefixDeleteMultiRequest.build(ns, pkey, skeys);
-		Pair<byte[], List<byte[]>> context = new Pair<byte[], List<byte[]>> (pkey, skeys);
-		request.setContext(context);
 
-		//send request
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), BatchReturnResponse.class, NkvResultCastFactory.PREFIX_DELETE_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<BatchReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-	
 	public NkvResultFutureImpl<GetResponse, Result<byte[]>> prefixGetAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
 		if (opt == null) 
 			opt = defaultOptions;
@@ -677,35 +595,6 @@ public abstract class AbstractNkvClient implements NkvClient {
 			return hideLocalAsyncImpl(ns, pkey, skey, opt);
 		return future;
 	}
-
-	public Future<ResultMap<byte[], Result<Void>>> prefixHideMultiByProxyAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = prefixHideMultiByProxyAsyncImpl(ns, pkey, skeys, opt);
-		if (future == null)
-			return prefixHideMultiLocalAsyncImpl(ns, pkey, skeys, opt); 
-		return future;
-	}
-	
-	private Future<ResultMap<byte[], Result<Void>>> prefixHideMultiByProxyAsyncImpl(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		if (opt == null) {
-			opt = defaultOptions;
-		}
-		//build request
-		//OK!!!
-		List<byte[]> skeys_ = NkvUtil.removeDuplicateKeys(skeys);
-		HideByProxyMultiRequest request = HideByProxyMultiRequest.build(ns, pkey, skeys_, group);
-
-		Pair<byte[], List<byte[]>> context = new Pair<byte[], List<byte[]>> (pkey, skeys_);
-		request.setContext(context);
-		//send request
-		NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callInvalidServerAsync(request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.PREFIX_HIDE_MULTI_BY_PROXY);
-		//add the future the the set.
-		if (future == null)
-			return null;
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
 	
 	private Future<Result<Void>> deleteByProxyAsyncImpl(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
 		if (opt == null) {
@@ -734,305 +623,6 @@ public abstract class AbstractNkvClient implements NkvClient {
 		return invalidByProxyAsyncImpl(ns, pkey, skey, opt);
 	}
 
-	public Future<ResultMap<byte[], Result<Void>>> prefixInvalidMultiByProxyAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = prefixInvalidMultiByProxyAsyncImpl(
-				ns, pkey, skeys, opt);
-		if (future == null)
-			return prefixDeleteMultiLocalAsyncImpl(ns, pkey, skeys, opt);
-		return future;
-	
-	}
-
-	private Future<ResultMap<byte[], Result<Void>>> prefixInvalidMultiByProxyAsyncImpl(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		if (opt == null) {
-			opt = defaultOptions;
-		}
-		//build request
-		//OK!!!
-		List<byte[]> skeys_ = NkvUtil.removeDuplicateKeys(skeys);
-		InvalidByProxyMultiRequest request = InvalidByProxyMultiRequest.build(ns, pkey, skeys_, group);
-		Pair<byte[], List<byte[]>> context = new Pair<byte[], List<byte[]>>(pkey, skeys_);
-		request.setContext(context);
-		//send request
-		NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callInvalidServerAsync(request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.PREFIX_INVALID_MULTI);
-		if (future == null)
-			return null;
-		//add the future the the set.
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-	
-	public Future<ResultMap<byte[], Result<Void>>> batchInvalidByProxyAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		Future<ResultMap<byte[], Result<Void>>> future = batchDeleteByProxyAsync(
-				ns, keys, opt);
-		if (future == null)
-			return batchDeleteLocalAsync(ns, keys, opt);
-		return future;
-	}
-
-	private Future<ResultMap<byte[], Result<Void>>> batchDeleteByProxyAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException {
-		if (opt == null) {
-			opt = defaultOptions;
-		}
-		if (keys == null) {
-			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
-		}
-		//build request.
-		//OK!!!
-		List<byte[]> keys_ = NkvUtil.removeDuplicateKeys(keys);
-		InvalidByProxyRequest request = InvalidByProxyRequest.build(ns, keys_, group);
-		request.setContext(keys_);
-		NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callInvalidServerAsync(request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.BATCH_INVALID);
-		//add the future the the set.
-		if (future == null)
-			return null;
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	
-	}
-	
-	private Future<ResultMap<byte[], Result<Void>>> batchDeleteLocalAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		if (keys == null) {
-			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
-		}
-		Map<SocketAddress, List<byte[]>> batch = tairProcessor.matchDataServer(keys);
-
-		Set<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		//send the request
-		for (SocketAddress addr : batch.keySet()) {
-			//OK!!!
-			DeleteRequest request = DeleteRequest.build(ns, batch.get(addr));
-			request.setContext(batch.get(addr));
-			NkvResultFutureImpl<ReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.BATCH_DELETE);
-			//add the future to future set.
-			futureSet.add(future);
-		}
-		//return the future set.
-		return new NkvResultFutureSetImpl<ReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-
-	/*public Future<Result<Void>> expireAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//build request.
-		//OK!!!
-		ExpireRequest request = ExpireRequest.build(ns, key, opt);
-		SocketAddress addr = tairProcessor.matchDataServer(key);
-		return tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), ReturnResponse.class, NkvResultCastFactory.EXPIRE);
-	}*/
-
-	private Future<ResultMap<byte[], Result<Void>>> prefixPutMultiAsyncImpl(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, final Map<byte[], Pair<byte[], RequestOption>> cvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		
-		PrefixPutMultiRequest request = PrefixPutMultiRequest.build(ns, pkey, kvs, cvs, compressOpt);
-		
-		List<byte[]> keys = new ArrayList<byte[]> ();
-		if (kvs != null) {
-			List<byte[]> kvKeys = NkvUtil.fetchRowKey(kvs);
-			keys.addAll(kvKeys);
-		}
-		if (cvs != null) {
-			List<byte[]> cvKeys = NkvUtil.fetchRowKey(cvs);
-			keys.addAll(cvKeys);
-		} 
-		//create request packet
-		//OK!!!
-		
-		Pair<byte[], List<byte[]>> context = new Pair<byte[], List<byte[]>>(pkey, keys);
-		request.setContext(context);
-		//send request
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), BatchReturnResponse.class, NkvResultCastFactory.PREFIX_PUT_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<BatchReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-	
-	public Future<ResultMap<byte[], Result<Void>>> prefixPutMultiAsync(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		return prefixPutMultiAsyncImpl(ns, pkey, kvs, null, opt);
-	}
-	
-	public Future<ResultMap<byte[], Result<Void>>> prefixPutMultiAsync(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, final Map<byte[], Pair<Integer, RequestOption>> cvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		Map<byte[], Pair<byte[], RequestOption>> cvsTemp = null;
-		if (cvs != null) {
-			cvsTemp = new HashMap<byte[], Pair<byte[], RequestOption>>(
-					cvs.size());
-			for (Map.Entry<byte[], Pair<Integer, RequestOption>> entry : cvs.entrySet()) {
-				byte[] incValue = NkvUtil.encodeCountValue(entry.getValue().first());
-				cvsTemp.put(entry.getKey(), new Pair<byte[], RequestOption>(
-						incValue, entry.getValue().second()));
-			}
-		}
-		return prefixPutMultiAsyncImpl(ns, pkey, kvs, cvsTemp, opt);
-	}
-		
-	
-	public Future<ResultMap<byte[], Result<Void>>> prefixSetCountMultiAsync(short ns, byte[] pkey, final Map<byte[], Pair<Integer, RequestOption>> kvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		Map<byte[], Pair<byte[], RequestOption>> cvs = new HashMap<byte[], Pair<byte[], RequestOption>> (kvs.size());
-		for (Map.Entry<byte[], Pair<Integer, RequestOption>> entry : kvs.entrySet()) {
-			byte[] incValue = NkvUtil.encodeCountValue(entry.getValue().first());
-			cvs.put(entry.getKey(), new Pair<byte[], RequestOption> (incValue, entry.getValue().second()));
-		}
-		return prefixPutMultiAsyncImpl(ns, pkey, null, cvs, opt);
-	}
-	
-	public Future<ResultMap<byte[], Result<byte[]>>> prefixGetMultiAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//build request
-		//OK!!!
-		PrefixGetMultiRequest request = PrefixGetMultiRequest.build(ns, pkey, skeys);
-		request.setContext(new CompressContext(skeys.size()));
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixGetMultiResponse.class, NkvResultCastFactory.PREFIX_GET_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<PrefixGetMultiResponse, byte[], ResultMap<byte[], Result<byte[]>>>(futureSet);
-	}
-		
-	public Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>> batchPrefixGetMultiAsync(short ns, Map<byte[], List<byte[]>> kvs, NkvOption opt) throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//create futureSet.
-		Set<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>>>();
-		for (Map.Entry<byte[], List<byte[]>> e : kvs.entrySet()) {
-			byte[] pkey = e.getKey();
-			List<byte[]> skeys = e.getValue();
-			//final List<ByteArray> skeySet = NkvUtil.convertList(skeys);
-			//create request packet.
-			//OK!!!
-			PrefixGetMultiRequest request = PrefixGetMultiRequest.build(ns, pkey, skeys);
-			request.setContext(new CompressContext(skeys.size()));
-			//send request.
-			SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-			NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixGetMultiResponse.class, NkvResultCastFactory.BATCH_PREFIX_GET_MULTI);
-			//add the future the the set.
-			futureSet.add(future);
-		}
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<PrefixGetMultiResponse, Map<byte[], Result<byte[]>>, ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>(futureSet);
-	}
-	
-	private Future<ResultMap<byte[], Result<Void>>> prefixHideMultiLocalAsyncImpl(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//build request
-		//OK!!!
-		PrefixHideMultiRequest request = PrefixHideMultiRequest.build(ns, pkey, skeys);
-		Pair<byte[], List<byte[]>> context = new Pair<byte[], List<byte[]>>(pkey, skeys);
-		request.setContext(context);
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), BatchReturnResponse.class, NkvResultCastFactory.PREFIX_HIDE_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>> futureSet = new HashSet<NkvResultFutureImpl<BatchReturnResponse, Result<ResultMap<byte[], Result<Void>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<BatchReturnResponse, Void, ResultMap<byte[], Result<Void>>>(futureSet);
-	}
-	
-	public Future<ResultMap<byte[], Result<byte[]>>> prefixGetHiddenMultiAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		 
-		//build request, no need to set the context
-		//OK!!!
-		PrefixGetHiddenMultiRequest request = PrefixGetHiddenMultiRequest.build(ns, pkey, skeys);
-		request.setContext(new CompressContext());
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixGetMultiResponse.class, NkvResultCastFactory.PREFIX_GET_HIDDEN_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<byte[]>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<PrefixGetMultiResponse, byte[], ResultMap<byte[], Result<byte[]>>>(futureSet);
-	}
-	
-	public Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>  batchPrefixGetHiddenMultiAsync(short ns, Map<byte[], List<byte[]>> kvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		if (kvs == null) {
-			throw new IllegalArgumentException(NkvConstant.KEY_NOT_AVAILABLE);
-		}
-		Set<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>>>();
-		for (Map.Entry<byte[], List<byte[]>> e : kvs.entrySet()) {
-			byte[] pkey = e.getKey();
-			List<byte[]> skeys = e.getValue();
-			
-			//build request
-			//OK!!!
-			PrefixGetHiddenMultiRequest request = PrefixGetHiddenMultiRequest.build(ns, pkey, skeys);
-			request.setContext(new CompressContext());
-			SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-			NkvResultFutureImpl<PrefixGetMultiResponse, Result<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixGetMultiResponse.class, NkvResultCastFactory.BATCH_PREFIX_GET_HIDDEN_MULTI);
-			//add the future the the set.
-			futureSet.add(future);
-		}
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<PrefixGetMultiResponse, Map<byte[], Result<byte[]>>, ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>>(futureSet);
-
-	}
-	
-	private Future<ResultMap<byte[], Result<Integer>>> prefixAddCountMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		if (opt == null) 
-			opt = defaultOptions;
-		//build request, no need to set the context.
-		//OK!!!
-		PrefixIncDecRequest request = PrefixIncDecRequest.build(ns, pkey, skv);
-		List<ByteArray> skeySet = NkvUtil.fetchByteArrayKey(skv);
-		Pair<byte[], List<ByteArray>> context = new Pair<byte[], List<ByteArray>> (pkey, skeySet);
-		request.setContext(context);
-
-		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-		NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixIncDecResponse.class, NkvResultCastFactory.PREFIX_ADD_COUNT_MULTI);
-		//add the future the the set.
-		Set<NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>>>();
-		futureSet.add(future);
-		//create the futureSet.
-		return new NkvResultFutureSetImpl<PrefixIncDecResponse, Integer, ResultMap<byte[], Result<Integer>>>(futureSet);
-	}
-//	private Future<ResultMap<byte[], Result<Integer>>> prefixAddCountBoundedMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, int lowBound, int upperBound, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-//		if (opt == null) 
-//			opt = defaultOptions;
-//		//build request, no need to set the context.
-//		//OK!!!
-//		BoundedPrefixIncDecRequest request = BoundedPrefixIncDecRequest.build(ns, pkey, skv, lowBound, upperBound);
-//		List<ByteArray> skeySet = NkvUtil.fetchByteArrayKey(skv);
-//		Pair<byte[], List<ByteArray>> context = new Pair<byte[], List<ByteArray>> (pkey, skeySet);
-//		request.setContext(context);
-//
-//		SocketAddress addr = tairProcessor.matchDataServer(NkvConstant.PREFIX_KEY_TYPE, pkey);
-//		NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>> future = tairProcessor.callDataServerAsync(addr, request, opt.getTimeout(), PrefixIncDecResponse.class, NkvResultCastFactory.PREFIX_ADD_COUNT_BOUNDED_MULTI);
-//		//add the future the the set.
-//		Set<NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>>> futureSet = new HashSet<NkvResultFutureImpl<PrefixIncDecResponse, Result<ResultMap<byte[], Result<Integer>>>>>();
-//		futureSet.add(future);
-//		//create the futureSet.
-//		return new NkvResultFutureSetImpl<PrefixIncDecResponse, Integer, ResultMap<byte[], Result<Integer>>>(futureSet);
-//	}
-	public Future<ResultMap<byte[], Result<Integer>>> prefixIncrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		return prefixAddCountMultiAsync(ns, pkey, skv, opt);
-	}
-//	public Future<ResultMap<byte[], Result<Integer>>> prefixIncrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, int lowBound, int upperBound, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-//		return prefixAddCountBoundedMultiAsync(ns, pkey, skv, lowBound, upperBound, opt);
-//	}
-	
-	public Future<ResultMap<byte[], Result<Integer>>> prefixDecrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
-		Map<byte[], Counter> skvTemp = new HashMap<byte[], Counter>();
-		for (Map.Entry<byte[], Counter> e : skv.entrySet()) {
-			skvTemp.put(e.getKey(), new Counter(-e.getValue().getValue(), e.getValue().getInitValue(), e.getValue().getExpire()));
-		}
-		return prefixAddCountMultiAsync(ns, pkey, skvTemp, opt);
-	}
 //	public Future<ResultMap<byte[], Result<Integer>>> prefixDecrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, int lowBound, int upperBound, NkvOption opt)  throws NkvRpcError, NkvFlowLimit {
 //		Map<byte[], Counter> skvTemp = new HashMap<byte[], Counter>();
 //		for (Map.Entry<byte[], Counter> e : skv.entrySet()) {

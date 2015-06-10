@@ -39,7 +39,7 @@ public class TextDeleteCommand extends Command {
 			throw new McError();
 		}
 		
-		key = tokens[1];
+		key = tokens[1].getBytes();
 		if (tokens.length == 3) {
 			if (tokens[2].equals(NOREPLAY) == false) {
 				throw new McClientError("bad command line format.  Usage: delete <key> [noreply]");

@@ -28,8 +28,7 @@ public class TextSetCommand extends StorageCommand {
 	@Override
 	public <T> ChannelBuffer encodeTo(Result<T> result) throws McError {
 		if (result.getCode() == ResultCode.OK) {
-			ChannelBuffer storedBuffer = ChannelBuffers.copiedBuffer(STORED);
-			return storedBuffer;
+			return ChannelBuffers.copiedBuffer(STORED);
 		} else {
 			throw new McServerError();
 		}
@@ -41,7 +40,7 @@ public class TextSetCommand extends StorageCommand {
 			throw new McError();
 		}
 
-		key = tokens[1];
+		key = tokens[1].getBytes();
 		flags = Integer.parseInt(tokens[2]);
 		exptime = Long.parseLong(tokens[3]);
 		valueLen = Integer.parseInt(tokens[4]);

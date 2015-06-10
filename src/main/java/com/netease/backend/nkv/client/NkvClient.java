@@ -1,7 +1,6 @@
 package com.netease.backend.nkv.client;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -12,6 +11,7 @@ import com.netease.backend.nkv.client.error.NkvTimeout;
 import com.netease.backend.nkv.client.packets.common.ReturnResponse;
 import com.netease.backend.nkv.client.packets.dataserver.GetResponse;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFutureSetImpl;
 
 
 public interface NkvClient {
@@ -135,9 +135,7 @@ public interface NkvClient {
 	
 	public NkvResultFutureImpl<GetResponse, Result<byte[]>> getAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit ;
 	
-	public Future<ResultMap<byte[], Result<Void>>> batchPutAsync(short ns, final Map<byte[], byte[]> kv, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-
-	public Future<ResultMap<byte[], Result<byte[]>>> batchGetAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
+public NkvResultFutureSetImpl<GetResponse, byte[], ResultMap<String, Result<byte[]>>> batchGetAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 	
 	public Future<Result<Void>> setCountAsync(short ns, byte[] key, int count, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 	 
@@ -155,9 +153,6 @@ public interface NkvClient {
 	 
 	public Future<Result<byte[]>> getHiddenAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 
-	public Future<ResultMap<byte[], Result<Void>>> batchLockAsync(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	 
-	public Future<ResultMap<byte[], Result<Void>>> batchUnlockAsync(short ns, List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 	 
 	public Future<Result<Void>> prefixPutAsync(short ns, byte[] pkey, byte[] skey, byte[] value, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
 
@@ -180,40 +175,10 @@ public interface NkvClient {
 	
 	public Future<Result<Void>> prefixHideByProxyAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
 	
-	public Future<ResultMap<byte[], Result<Void>>> prefixHideMultiByProxyAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
-	
 	public Future<Result<Void>> invalidByProxyAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
 	
 	public Future<Result<Void>> prefixInvalidByProxyAsync(short ns, byte[] pkey, byte[] skey, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
-	
-	public Future<ResultMap<byte[], Result<Void>>> prefixInvalidMultiByProxyAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
-	
-	public Future<ResultMap<byte[], Result<Void>>> batchInvalidByProxyAsync(short ns, final List<byte[]> keys, NkvOption opt) throws NkvRpcError, NkvFlowLimit, NkvTimeout, InterruptedException;
-	
-	//public Future<Result<Void>> expireAsync(short ns, byte[] key, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<Void>>> prefixPutMultiAsync(short ns, byte[] pkey, final Map<byte[], Pair<byte[], RequestOption>> kvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<byte[]>>> prefixGetMultiAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>> batchPrefixGetMultiAsync(short ns, Map<byte[], List<byte[]>> kvs, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<byte[]>>> prefixGetHiddenMultiAsync(short ns, byte[] pkey, List<byte[]> skeys, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<Map<byte[], Result<byte[]>>>>> batchPrefixGetHiddenMultiAsync(short ns, Map<byte[], List<byte[]>> kvs, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<Integer>>> prefixIncrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	public Future<ResultMap<byte[], Result<Integer>>> prefixDecrMultiAsync(short ns, byte[] pkey, Map<byte[], Counter> skv, NkvOption opt)  throws NkvRpcError, NkvFlowLimit;
-	
-	//public Future<Result<List<Pair<byte[], Result<byte[]>>>>> getRangeAsync(short ns, byte[] pkey, byte[] begin, byte[] end, int offset, int maxCount, boolean reverse, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
-	//public Future<Result<List<Result<byte[]>>>> deleteRangeAsync(short ns, byte[] pkey, byte[] begin, byte[] end, int offset, int maxCount, boolean reverse, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
-	//public Future<Result<List<Result<byte[]>>>> getRangeKeyAsync(short ns, byte[] pkey, byte[] begin, byte[] end, int offset, int maxCount, boolean reverse, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
-	//public Future<Result<List<Result<byte[]>>>> getRangeValueAsync(short ns, byte[] pkey, byte[] begin, byte[] end, int offset, int maxCount, boolean reverse, NkvOption opt) throws NkvRpcError, NkvFlowLimit;
-	
+
 	public class NotifyFuture{
 		private Future<?> future;
 		private Object    ctx;

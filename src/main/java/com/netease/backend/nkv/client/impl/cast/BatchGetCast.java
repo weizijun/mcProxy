@@ -14,14 +14,14 @@ import com.netease.backend.nkv.client.packets.dataserver.GetResponse;
 import com.netease.backend.nkv.client.util.NkvUtil;
 
 
-public class BatchGetCast implements NkvResultCast<GetResponse, Result<ResultMap<byte[], Result<byte[]>>>> {
-	public Result<ResultMap<byte[], Result<byte[]>>> cast(GetResponse s, Object context) throws NkvRpcError, NkvCastIllegalContext {
+public class BatchGetCast implements NkvResultCast<GetResponse, Result<ResultMap<String, Result<byte[]>>>> {
+	public Result<ResultMap<String, Result<byte[]>>> cast(GetResponse s, Object context) throws NkvRpcError, NkvCastIllegalContext {
 		if (context == null || !(context instanceof CompressContext)) {
 			throw new  NkvCastIllegalContext("context of BatchGetCast.");
 		}
 		
-		Result<ResultMap<byte[], Result<byte[]>>> result = new Result<ResultMap<byte[], Result<byte[]>>>();
-		ResultMap<byte[], Result<byte[]>> r = new ResultMap<byte[], Result<byte[]>>();
+		Result<ResultMap<String, Result<byte[]>>> result = new Result<ResultMap<String, Result<byte[]>>>();
+		ResultMap<String, Result<byte[]>> r = new ResultMap<String, Result<byte[]>>();
 		ResultCode code = ResultCode.castResultCode(s.getCode());
 		result.setCode(code);
 		
@@ -40,7 +40,7 @@ public class BatchGetCast implements NkvResultCast<GetResponse, Result<ResultMap
 					}
 				}
 				res.setCode(code);
-				r.put(res.getKey(), res);
+				r.put(new String(res.getKey()), res);
 				keySet.remove(res.getKey());
 			}
 		}
@@ -49,7 +49,7 @@ public class BatchGetCast implements NkvResultCast<GetResponse, Result<ResultMap
 			Result<byte[]> e = new Result<byte[]>();
 			e.setKey(key);
 			e.setCode(ResultCode.NOTEXISTS);
-			r.put(key, e);
+			r.put(new String(key), e);
 		}
 		r.setCode(code);
 		result.setResult(r);

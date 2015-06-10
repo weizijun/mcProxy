@@ -6,11 +6,11 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
 import com.netease.backend.nkv.client.error.McError;
-import com.netease.backend.nkv.client.error.NkvRpcError;
 import com.netease.backend.nkv.mcProxy.command.Command;
 import com.netease.backend.nkv.mcProxy.command.StorageCommand;
 import com.netease.backend.nkv.mcProxy.command.text.TextDeleteCommand;
 import com.netease.backend.nkv.mcProxy.command.text.TextGetCommand;
+import com.netease.backend.nkv.mcProxy.command.text.TextGetManyCommand;
 import com.netease.backend.nkv.mcProxy.command.text.TextSetCommand;
 
 public class McProxyDecoder extends FrameDecoder{
@@ -26,7 +26,6 @@ public class McProxyDecoder extends FrameDecoder{
 	        }
 	        
 	        final int length = eol - buffer.readerIndex();
-	        assert length >= 0: "Invalid length=" + length;
 	        
 	        int delimLength = 2;
 	        byte[] cmdByteLine = new byte[length];
@@ -37,7 +36,12 @@ public class McProxyDecoder extends FrameDecoder{
 	        String cmdLine = new String(cmdByteLine);
 	        String[] token = cmdLine.trim().split("\\s");
 	        if (token[0].equals("get")) {
-	        	cmd = new TextGetCommand();
+	        	if (token.length == 2) {
+	        		cmd = new TextGetCommand();
+	        	} else {
+	        		cmd = new TextGetManyCommand();
+	        	}
+	        	
 	        } else if (token[0].equals("set")) {
 	        	cmd = new TextSetCommand();
 	        } else if (token[0].equals("delete")) {
@@ -45,7 +49,7 @@ public class McProxyDecoder extends FrameDecoder{
 	        } else {
 	        	throw new McError();
 	        }
-	  
+
 	        cmd.decodeFrom(token);
 	        
 	        if (cmd instanceof StorageCommand) {
@@ -67,7 +71,7 @@ public class McProxyDecoder extends FrameDecoder{
 	        	}
 	        } else {
 	        	throw new McError();
-	        } 
+	        }
 		}
 	}
 

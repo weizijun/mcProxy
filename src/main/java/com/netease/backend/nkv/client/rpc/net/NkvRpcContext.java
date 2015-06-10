@@ -28,9 +28,9 @@ import com.netease.backend.nkv.client.packets.dataserver.TrafficCheckResponse;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFutureImpl;
 import com.netease.backend.nkv.client.rpc.protocol.tair2_3.PacketManager;
+import com.netease.backend.nkv.mcProxy.QueryMsg;
 import com.netease.backend.nkv.mcProxy.command.Command;
 import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
-import com.netease.backend.nkv.mcProxy.net.QueryMsg;
 
 public class NkvRpcContext {
 	private Logger log = LoggerFactory.getLogger(this.getClass());
@@ -204,7 +204,7 @@ public class NkvRpcContext {
 					if (future.getCause() != null) {
 						tairFuture.setException(future.getCause());
 						bgWorker.removeWaitingChannelSeq(channel.getWaitingChannelSeq());
-						channel.getAndRemoveCallTask(requestWrapper.getChannelSeq());
+						channel.removeCallTask(requestWrapper.getChannelSeq());
 						return;
 					}
 					channel.waitConnect(0);
@@ -340,7 +340,7 @@ public class NkvRpcContext {
 			
 			QueryMsg currentMsg = future.getQueryMsg();
 			if (currentMsg != null) {
-				currentMsg.setDone(true);
+				currentMsg.setDone(future, true);
 				
 				McProxyChannel mcProxyChannel = currentMsg.getChannel();
 				
@@ -348,13 +348,18 @@ public class NkvRpcContext {
 					mcProxyChannel.lockHead();
 					
 					QueryMsg firstMsg = mcProxyChannel.getFirstMsg();
-					if (firstMsg != null && true == firstMsg.isDone()) {
-						mcProxyChannel.pollFirstMsg();
-						NkvResultFuture<?> resultFuture = firstMsg.getFuture();
-						Command command = firstMsg.getCommand();
-						Result<?> result = (Result<?>) resultFuture.get();
-						ChannelBuffer returnData = command.encodeTo(result);
-						mcProxyChannel.sendPacket(returnData);
+					if (firstMsg != null) {
+						if (true == firstMsg.isError()) {
+							mcProxyChannel.pollFirstMsg();
+							mcProxyChannel.sendPacket(QueryMsg.ErrorBuffer);
+						} else if (true == firstMsg.isDone()) {
+							mcProxyChannel.pollFirstMsg();
+							NkvResultFuture<?> resultFuture = firstMsg.getFuture();
+							Command command = firstMsg.getCommand();
+							Result<?> result = (Result<?>) resultFuture.get();
+							ChannelBuffer returnData = command.encodeTo(result);
+							mcProxyChannel.sendPacket(returnData);
+						}
 					}
 				} finally {
 					mcProxyChannel.unlockHead();

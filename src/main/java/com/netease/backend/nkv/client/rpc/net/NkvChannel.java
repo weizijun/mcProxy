@@ -4,15 +4,21 @@ import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.netease.backend.nkv.client.Result;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.error.NkvTimeout;
+import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.net.FlowLimit.FlowStatus;
+import com.netease.backend.nkv.mcProxy.QueryMsg;
+import com.netease.backend.nkv.mcProxy.command.Command;
+import com.netease.backend.nkv.mcProxy.net.McProxyChannel;
 
 
 public class NkvChannel {
@@ -223,6 +229,41 @@ public class NkvChannel {
 		return future;
 	}
 	
+	public void removeCallTask(int channelSeq) {
+		NkvFuture future = tasks.remove(channelSeq);
+		if (future != null) {
+			QueryMsg currentMsg = future.getQueryMsg();
+			if (currentMsg != null) {
+				currentMsg.setError(true);
+			}
+			
+			McProxyChannel mcProxyChannel = currentMsg.getChannel();
+			
+			try {
+				mcProxyChannel.lockHead();
+				
+				QueryMsg firstMsg = mcProxyChannel.getFirstMsg();
+				if (firstMsg != null) {
+					if (true == firstMsg.isError()) {
+						mcProxyChannel.pollFirstMsg();
+						mcProxyChannel.sendPacket(QueryMsg.ErrorBuffer);
+					} else if (true == firstMsg.isDone()) {
+						mcProxyChannel.pollFirstMsg();
+						NkvResultFuture<?> resultFuture = firstMsg.getFuture();
+						Command command = firstMsg.getCommand();
+						Result<?> result = (Result<?>) resultFuture.get();
+						ChannelBuffer returnData = command.encodeTo(result);
+						mcProxyChannel.sendPacket(returnData);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				mcProxyChannel.unlockHead();
+			}
+		}
+	}
+	
 	public NkvFuture getAndRemoveCallTask(int channelSeq) {
 		NkvFuture future = tasks.remove(channelSeq);
 		return future;
@@ -231,6 +272,36 @@ public class NkvChannel {
 	public NkvFuture clearTimeoutCallTask(int channelSeq) {
 		NkvFuture future = tasks.remove(channelSeq);
 		if (future != null) {
+			QueryMsg currentMsg = future.getQueryMsg();
+			if (currentMsg != null) {
+				currentMsg.setError(true);
+			}
+			
+			McProxyChannel mcProxyChannel = currentMsg.getChannel();
+			
+			try {
+				mcProxyChannel.lockHead();
+				
+				QueryMsg firstMsg = mcProxyChannel.getFirstMsg();
+				if (firstMsg != null) {
+					if (true == firstMsg.isError()) {
+						mcProxyChannel.pollFirstMsg();
+						mcProxyChannel.sendPacket(QueryMsg.ErrorBuffer);
+					} else if (true == firstMsg.isDone()) {
+						mcProxyChannel.pollFirstMsg();
+						NkvResultFuture<?> resultFuture = firstMsg.getFuture();
+						Command command = firstMsg.getCommand();
+						Result<?> result = (Result<?>) resultFuture.get();
+						ChannelBuffer returnData = command.encodeTo(result);
+						mcProxyChannel.sendPacket(returnData);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				mcProxyChannel.unlockHead();
+			}
+			
 			future.setException(new NkvTimeout("waiting response timeout, remote: " + future.getRemoteAddress().toString()));
 		}
 		return future;

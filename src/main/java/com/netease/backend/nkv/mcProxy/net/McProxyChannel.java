@@ -14,6 +14,7 @@ import org.jboss.netty.channel.ChannelFuture;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.rpc.future.NkvResultFuture;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture;
+import com.netease.backend.nkv.mcProxy.QueryMsg;
 import com.netease.backend.nkv.mcProxy.command.Command;
 
 /**

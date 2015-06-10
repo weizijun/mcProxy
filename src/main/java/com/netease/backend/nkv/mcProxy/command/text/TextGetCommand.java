@@ -28,8 +28,16 @@ public class TextGetCommand extends Command {
 		@SuppressWarnings("unchecked")
 		Result<byte[]> getResult = (Result<byte[]>) result;
 		if (result.getCode() == ResultCode.OK) {
+			buffer.writeBytes(VALUE);
+			buffer.writeByte(SPACE_BYTE);
+			buffer.writeBytes(key);
+			buffer.writeByte(SPACE_BYTE);
+			buffer.writeBytes(String.valueOf(getResult.getFlag()).getBytes());
+			buffer.writeByte(SPACE_BYTE);
+			buffer.writeBytes(String.valueOf(getResult.getResult().length).getBytes());
+			buffer.writeBytes(END_BYTES);
 			buffer.writeBytes(getResult.getResult());
-			buffer.writeBytes(ENDBYTES);
+			buffer.writeBytes(END_BYTES);
 		}
 
 		buffer.writeBytes(END);
@@ -38,8 +46,10 @@ public class TextGetCommand extends Command {
 
 	@Override
 	public void decodeFrom(String[] tokens) throws McError {
-		assert tokens.length == 2 : "Invalid format";
-		key = tokens[1];
+		if (tokens.length != 2) {
+			throw new McError();
+		}
+		key = tokens[1].getBytes();
 	}
 
 }

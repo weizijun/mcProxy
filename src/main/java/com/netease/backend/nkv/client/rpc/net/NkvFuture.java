@@ -15,7 +15,7 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import com.netease.backend.nkv.client.error.NkvAgain;
 import com.netease.backend.nkv.client.error.NkvException;
 import com.netease.backend.nkv.client.rpc.net.NkvRpcContext.FailCounter;
-import com.netease.backend.nkv.mcProxy.net.QueryMsg;
+import com.netease.backend.nkv.mcProxy.QueryMsg;
 
 public class NkvFuture implements java.util.concurrent.Future<NkvRpcPacket> {
 	private ReentrantLock lock = new ReentrantLock();

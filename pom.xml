@@ -47,6 +47,11 @@
 			<groupId>net.jpountz.lz4</groupId>
 			<artifactId>lz4</artifactId>
 			<version>1.2.0</version>
-		</dependency>			
+		</dependency>	
+		<dependency>
+			<groupId>redis.clients</groupId>
+			<artifactId>jedis</artifactId>
+			<version>2.7.2</version>
+		</dependency>
 	</dependencies>
 </project>

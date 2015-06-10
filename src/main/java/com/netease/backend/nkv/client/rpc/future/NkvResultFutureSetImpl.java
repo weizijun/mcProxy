@@ -8,15 +8,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.netease.backend.nkv.client.NkvBlockingQueue;
 import com.netease.backend.nkv.client.Result;
 import com.netease.backend.nkv.client.ResultMap;
-import com.netease.backend.nkv.client.NkvBlockingQueue;
 import com.netease.backend.nkv.client.Result.ResultCode;
 import com.netease.backend.nkv.client.packets.AbstractResponsePacket;
-import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
 import com.netease.backend.nkv.client.rpc.net.NkvFuture.NkvFutureListener;
+import com.netease.backend.nkv.client.rpc.net.NkvRpcPacket;
+import com.netease.backend.nkv.mcProxy.QueryMsg;
 
-public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T extends ResultMap<byte[], Result<E>>> extends NkvResultFuture<ResultMap<byte[], Result<E>>>
+public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T extends ResultMap<String, Result<E>>> extends NkvResultFuture<ResultMap<String, Result<E>>>
 { 
 	private Set<NkvResultFutureImpl<S, Result<T>>> futures;
 	public NkvResultFutureSetImpl(Set<NkvResultFutureImpl<S, Result<T>>> futures) {
@@ -49,9 +50,17 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		}
 		return res;
 	}
+	
+	public void setFutureQueryMsg(QueryMsg queryMsg) {
+		for (NkvResultFutureImpl<S, Result<T>> future : futures) {
+			future.getImpl().setQueryMsg(queryMsg);
+			queryMsg.addFuture(future.getImpl());
+		}
+	}
+	
 
-	public ResultMap<byte[], Result<E>> get() throws InterruptedException, ExecutionException {
-		ResultMap<byte[], Result<E>> res = new ResultMap<byte[], Result<E>>();
+	public ResultMap<String, Result<E>> get() throws InterruptedException, ExecutionException {
+		ResultMap<String, Result<E>> res = new ResultMap<String, Result<E>>();
 		Set<ResultCode> codes = new HashSet<ResultCode>();
 		for (NkvResultFutureImpl<S, Result<T>> future : futures) {
 			Result<T> r = future.get();
@@ -62,8 +71,8 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		return res;
 	}
 	
-	public ResultMap<byte[], Result<E>> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-		ResultMap<byte[], Result<E>> res = new ResultMap<byte[], Result<E>>();
+	public ResultMap<String, Result<E>> get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+		ResultMap<String, Result<E>> res = new ResultMap<String, Result<E>>();
 		long start = 0, end = 0;
 		long consumeTime = timeout;
 		Set<ResultCode> codes = new HashSet<ResultCode>();
@@ -90,8 +99,8 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		return res;
 	}
 
-	public ResultMap<byte[], Result<E>> getPortion() throws InterruptedException, ExecutionException {
-		ResultMap<byte[], Result<E>> res = new ResultMap<byte[], Result<E>>();
+	public ResultMap<String, Result<E>> getPortion() throws InterruptedException, ExecutionException {
+		ResultMap<String, Result<E>> res = new ResultMap<String, Result<E>>();
 		 
 		Set<ResultCode> codes = new HashSet<ResultCode>();
 		for (NkvResultFutureImpl<S, Result<T>> future : futures) {
@@ -105,8 +114,8 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		return res;
 	}
 
-	public ResultMap<byte[], Result<E>> getPortion(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-		ResultMap<byte[], Result<E>> res = new ResultMap<byte[], Result<E>>();
+	public ResultMap<String, Result<E>> getPortion(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+		ResultMap<String, Result<E>> res = new ResultMap<String, Result<E>>();
 
 		long time = 0;
 		long consumeTime = timeout;
@@ -132,7 +141,7 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		res.setResultCode(codes);
 		return res;
 	}
-	
+
 	@Override
 	public void futureNotify(final NkvBlockingQueue queue) {
 		final AtomicInteger count = new AtomicInteger(futures.size());
@@ -146,5 +155,5 @@ public class NkvResultFutureSetImpl<S extends AbstractResponsePacket, E, T exten
 		for (NkvResultFutureImpl<S, Result<T>> future : futures) {
 			future.setListener(listener);
 		}
-	}	
+	}
 }
