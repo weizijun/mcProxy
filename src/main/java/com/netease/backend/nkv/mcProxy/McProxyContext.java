@@ -54,7 +54,7 @@ public class McProxyContext {
 		nkvClient.setSlave(nkvConfig.getSlave());
 		nkvClient.setGroup(nkvConfig.getGroup());
 		
-		opt.setTimeout(1);
+		opt.setTimeout(100000000);
 		
 		try {
 			nkvClient.init();
@@ -74,6 +74,9 @@ public class McProxyContext {
 	
 	public void messageReceived(Channel channel, Command command)
 			throws Exception {
+		ChannelBuffer buffer = ChannelBuffers.copiedBuffer(command.getKey());
+		channel.write(buffer);
+		
 		McProxyChannel mcProxyChannel = (McProxyChannel) channel.getAttachment();
 		
 		if (command.getCommandType() == CommandType.GET_ONE) {
@@ -148,7 +151,7 @@ public class McProxyContext {
 		}
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		McProxyConfig config = new McProxyConfig();
 		config.setBossThreadCount(1);
 		config.setWorkerThreadCount(4);
@@ -159,5 +162,8 @@ public class McProxyContext {
 		
 		McProxyServer server = new McProxyServer(config);
 		server.init();
+		while (true) {
+			Thread.sleep(100000);
+		}
 	}
 }

@@ -10,7 +10,6 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
-//用于作为client主动连接
 public final class NkvConnector {
 
     private ClientBootstrap bootstrap = null;
